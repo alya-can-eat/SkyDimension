@@ -30,6 +30,8 @@ No client mod is needed. The vanilla Beta 1.7.3 client still knows the Sky dimen
 - **Silent and vanilla-feeling**: no chat messages during gameplay. Only commands reply.
 - **Portals collapse** when the frame is broken, just like Nether portals.
 
+![Leaves platform](https://github.com/alya-can-eat/SkyDimension/blob/main/.img/Screenshot_2026-10-17%2011-29-04.png?raw=true)
+
 ## Requirements
 
 - Project Poseidon (Beta 1.7.3 Server - Fork of CB1060)
