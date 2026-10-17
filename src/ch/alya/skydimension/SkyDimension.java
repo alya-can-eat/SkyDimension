@@ -12,6 +12,7 @@ import org.bukkit.event.block.BlockListener;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.entity.EntityListener;
 import org.bukkit.event.entity.EntityPortalEnterEvent;
+import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.event.player.PlayerBedEnterEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
@@ -25,6 +26,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Logger;
 
 public class SkyDimension extends JavaPlugin {
@@ -40,6 +43,9 @@ public class SkyDimension extends JavaPlugin {
     private int searchRadius;
     private int portalSearchRadius;
     private int dreamChance;
+    private boolean skyWeather;
+    /** Sky players whose client was already told "no rain" during the current Sky rain. */
+    private final Set<String> rainHidden = new HashSet<String>();
     private final Random random = new Random();
 
     private final Map<String, Location> returnPoints = new HashMap<String, Location>();
@@ -66,6 +72,7 @@ public class SkyDimension extends JavaPlugin {
         searchRadius = cfg.getInt("safe-spot-search-radius", 48);
         portalSearchRadius = cfg.getInt("portal-search-radius", 16);
         dreamChance = cfg.getInt("dream-chance", 10);
+        skyWeather = cfg.getBoolean("sky-snow", false);
 
         cfg.setProperty("world-name", worldName);
         cfg.setProperty("players-can-use-command", playersCanUseCommand);
@@ -74,6 +81,7 @@ public class SkyDimension extends JavaPlugin {
         cfg.setProperty("safe-spot-search-radius", searchRadius);
         cfg.setProperty("portal-search-radius", portalSearchRadius);
         cfg.setProperty("dream-chance", dreamChance);
+        cfg.setProperty("sky-snow", skyWeather);
         cfg.save();
 
         skyWorld = getServer().getWorld(worldName);
@@ -90,6 +98,8 @@ public class SkyDimension extends JavaPlugin {
         pm.registerEvent(Event.Type.PLAYER_BUCKET_EMPTY, pl, Event.Priority.Monitor, this);
         pm.registerEvent(Event.Type.PLAYER_BED_ENTER, pl, Event.Priority.Monitor, this);
         pm.registerEvent(Event.Type.BLOCK_PHYSICS, new Blocks(), Event.Priority.Normal, this);
+
+        if (skyWeather) skyWeather = enableSkySnow();
 
         getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
             public void run() {
@@ -316,7 +326,48 @@ public class SkyDimension extends JavaPlugin {
     }
 
     /** Runs every server tick: own portal timer, independent of movement packets. */
+    /**
+     * The Sky already has a server-side weather cycle, but its biome has snow switched
+     * off. Turning the biome's private snow flag on lets vanilla weather place snow and
+     * freeze water there, exactly like in a snowy overworld biome.
+     */
+    private boolean enableSkySnow() {
+        try {
+            java.lang.reflect.Field f = net.minecraft.server.BiomeBase.class.getDeclaredField("v");
+            f.setAccessible(true);
+            f.setBoolean(net.minecraft.server.BiomeBase.SKY, true);
+            return true;
+        } catch (Throwable t) {
+            LOG.warning("[SkyDimension] sky-snow could not be enabled on this server build: " + t);
+            return false;
+        }
+    }
+
+    /**
+     * Sky rain is only there to drive snow. The server tells clients when it starts;
+     * answer with "rain stopped" so the client sky never darkens.
+     */
+    private void hideSkyRain() {
+        boolean raining = ((CraftWorld) skyWorld).getHandle().v();
+        if (!raining) {
+            rainHidden.clear();
+            return;
+        }
+        for (Player p : skyWorld.getPlayers()) {
+            if (rainHidden.add(p.getName())) {
+                ((CraftPlayer) p).getHandle().netServerHandler.sendPacket(new net.minecraft.server.Packet70Bed(2));
+            }
+        }
+        // forget players who left, so they get the packet again when they come back
+        java.util.Iterator<String> it = rainHidden.iterator();
+        while (it.hasNext()) {
+            Player p = getServer().getPlayer(it.next());
+            if (p == null || p.getWorld() != skyWorld) it.remove();
+        }
+    }
+
     private void tickPortals() {
+        if (skyWeather) hideSkyRain();
         for (Player p : getServer().getOnlinePlayers()) {
             World w = p.getWorld();
             String name = p.getName();
