@@ -1,0 +1,25 @@
+name: SkyDimension
+main: ch.alya.skydimension.SkyDimension
+version: 1.0.0
+author: Alya
+description: Unlocks the unused Beta 1.7.3 Sky dimension, reachable via a glowstone portal.
+commands:
+  sky:
+    description: Travel to the Sky dimension or back. /sky <player> sends others, /sky toggle switches player access.
+    usage: /<command> [player|toggle]
+permissions:
+  skydimension.command:
+    description: Use /sky even when it is disabled for players.
+    default: op
+  skydimension.others:
+    description: Send other players with /sky <player>.
+    default: op
+  skydimension.toggle:
+    description: Switch /sky on or off for normal players.
+    default: op
+  skydimension.portal.create:
+    description: Activate a glowstone portal with water.
+    default: true
+  skydimension.portal.use:
+    description: Travel through a glowstone portal.
+    default: true
