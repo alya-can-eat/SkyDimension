@@ -88,6 +88,7 @@ By default, normal players can only reach the Sky through portals or dreams.
 | `safe-spot-search-radius` | `48` | Radius in blocks to search for solid ground on arrival |
 | `portal-search-radius` | `16` | Minimum radius to search for an existing portal (always at least the ground search radius + 4) |
 | `dream-chance` | `10` | Chance in % to be pulled into the dream world when going to bed. `0` disables it |
+| `sky-snow` | `false` | Let vanilla weather renew snow and freeze water in the Sky. No rain or snow is visible there |
 
 ## Notes
 
