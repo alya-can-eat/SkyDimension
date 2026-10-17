@@ -1,5 +1,5 @@
 # SkyDimension
-Server Plugin to access Sky dimension for Minecraft b1.7.3 Poseidon (CB1060 Fork)
+Server Plugin to access Sky dimension for Minecraft b1.7.3 Poseidon (CB1060 Fork; only tested on Poseidon)
 
 ![Sky Dimension via this Plugin](https://raw.githubusercontent.com/alya-can-eat/SkyDimension/refs/heads/main/.img/Screenshot_2026-10-17%2011-12-58.png)
 
