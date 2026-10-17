@@ -40,7 +40,7 @@ Only tested with Project Poseidon. It may work on CraftBukkit 1060, but that is 
 
 ## Installation
 
-1. Put `SkyDimension*.jar` into the `plugins/` folder.
+1. Put `SkyDimension*.jar` into the `plugins/` folder. Get from here: https://github.com/alya-can-eat/SkyDimension/releases
 2. Start the server. The Sky world `world_sky` and `plugins/SkyDimension/config.yml` are created on the first start.
 
 ## Building and entering a portal
