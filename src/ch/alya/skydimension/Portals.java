@@ -143,6 +143,13 @@ final class Portals {
 
     /** Nearest glowstone portal block (bottom cell) around x/z, or null. */
     static Block findNear(World w, int cx, int cz, int radius) {
+        // Unloaded chunks read as air in b1.7.3, so load the whole search area first
+        // (+1 block for frames on a chunk border).
+        for (int chx = (cx - radius - 1) >> 4; chx <= (cx + radius + 1) >> 4; chx++) {
+            for (int chz = (cz - radius - 1) >> 4; chz <= (cz + radius + 1) >> 4; chz++) {
+                w.loadChunk(chx, chz);
+            }
+        }
         Block best = null;
         double bestD = Double.MAX_VALUE;
         for (int x = cx - radius; x <= cx + radius; x++) {
