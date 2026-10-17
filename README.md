@@ -1,5 +1,7 @@
 # SkyDimension
-Plugin to access Sky dimension for Minecraft b1.7.3 Poseidon/CB1060
+Server Plugin to access Sky dimension for Minecraft b1.7.3 Poseidon/CB1060
+
+![Sky Dimension via this Plugin](https://raw.githubusercontent.com/alya-can-eat/SkyDimension/refs/heads/main/.img/Screenshot_2026-10-17%2011-12-58.png)
 
 ---
 
@@ -46,6 +48,8 @@ Only tested with Project Poseidon. It may work on CraftBukkit 1060, but that is 
 1. Build the frame out of glowstone in the same shape as a nether portal.
 2. Pour a water bucket into the opening.
 3. Stand in the portal for 4 seconds.
+
+![Sky Portal](https://raw.githubusercontent.com/alya-can-eat/SkyDimension/refs/heads/main/.img/Screenshot_2026-10-17%2011-11-46.png)
 
 ## Commands
 
