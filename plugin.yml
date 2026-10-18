@@ -1,6 +1,6 @@
 name: SkyDimension
 main: ch.alya.skydimension.SkyDimension
-version: 1.0.0
+version: 1.1.1
 author: Alya
 description: Unlocks the unused Beta 1.7.3 Sky dimension, reachable via a glowstone portal.
 commands:
