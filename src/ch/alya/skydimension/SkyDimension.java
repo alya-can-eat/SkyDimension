@@ -9,6 +9,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.block.BlockListener;
+import org.bukkit.event.block.BlockFormEvent;
 import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.entity.EntityListener;
 import org.bukkit.event.entity.EntityPortalEnterEvent;
@@ -105,6 +106,7 @@ public class SkyDimension extends JavaPlugin {
         pm.registerEvent(Event.Type.PORTAL_CREATE, new Worlds(), Event.Priority.Normal, this);
 
         if (skyWeather) skyWeather = enableSkySnow();
+        if (skyWeather) pm.registerEvent(Event.Type.BLOCK_FORM, new Blocks(), Event.Priority.Normal, this);
 
         getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
             public void run() {
@@ -448,7 +450,23 @@ public class SkyDimension extends JavaPlugin {
         }
     }
 
+    /**
+     * The Sky generator only places snow where the snow layer sits above y = 64
+     * (constant temperature 0.5 minus its height factor, ChunkProviderSky). Vanilla weather
+     * ignores height, so keep its snow and ice to that same "cold enough" zone.
+     */
+    private static final int SKY_SNOW_MIN_Y = 65;
+
     private class Blocks extends BlockListener {
+        public void onBlockForm(BlockFormEvent event) {
+            if (event.isCancelled()) return;
+            Block b = event.getBlock();
+            if (b.getWorld() != skyWorld) return;
+            int type = event.getNewState().getTypeId();
+            if (type == 78 && b.getY() < SKY_SNOW_MIN_Y) event.setCancelled(true);          // snow layer
+            else if (type == 79 && b.getY() + 1 < SKY_SNOW_MIN_Y) event.setCancelled(true); // ice: surface just above it
+        }
+
         public void onBlockPhysics(BlockPhysicsEvent event) {
             Block b = event.getBlock();
             if (b.getTypeId() != Portals.PORTAL) return;
