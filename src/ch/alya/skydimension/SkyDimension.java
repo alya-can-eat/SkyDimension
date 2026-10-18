@@ -18,6 +18,8 @@ import org.bukkit.event.player.PlayerBedEnterEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerListener;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.world.PortalCreateEvent;
+import org.bukkit.event.world.WorldListener;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.config.Configuration;
@@ -52,6 +54,8 @@ public class SkyDimension extends JavaPlugin {
 
     /** Own portal timer per player, replaces Poseidon's transfer (crashes for plugin worlds). */
     private static final int PORTAL_TICKS = 80; // same 4 s as vanilla
+    /** Horizontal search radius for a free return portal spot (CraftBukkit's vanilla value). */
+    private static final int BUILD_RADIUS = 14;
     private final Map<String, PortalTimer> portalTimers = new HashMap<String, PortalTimer>();
 
     private static class PortalTimer {
@@ -98,6 +102,7 @@ public class SkyDimension extends JavaPlugin {
         pm.registerEvent(Event.Type.PLAYER_BUCKET_EMPTY, pl, Event.Priority.Monitor, this);
         pm.registerEvent(Event.Type.PLAYER_BED_ENTER, pl, Event.Priority.Monitor, this);
         pm.registerEvent(Event.Type.BLOCK_PHYSICS, new Blocks(), Event.Priority.Normal, this);
+        pm.registerEvent(Event.Type.PORTAL_CREATE, new Worlds(), Event.Priority.Normal, this);
 
         if (skyWeather) skyWeather = enableSkySnow();
 
@@ -198,17 +203,8 @@ public class SkyDimension extends JavaPlugin {
      * (Sky: open void), a 3x3 platform of decaying leaves is built at y = 64.
      */
     private Location safeSpot(World w, int cx, int cz) {
-        for (int r = 0; r <= searchRadius; r++) {
-            for (int dx = -r; dx <= r; dx++) {
-                for (int dz = -r; dz <= r; dz++) {
-                    if (Math.abs(dx) != r && Math.abs(dz) != r) continue;
-                    int x = cx + dx, z = cz + dz;
-                    w.loadChunk(x >> 4, z >> 4);
-                    int y = w.getHighestBlockYAt(x, z);
-                    if (standable(w, x, y, z)) return new Location(w, x + 0.5, y, z + 0.5);
-                }
-            }
-        }
+        Location l = findGround(w, cx, cz);
+        if (l != null) return l;
         int y = 64;
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
@@ -221,20 +217,43 @@ public class SkyDimension extends JavaPlugin {
         return new Location(w, cx + 0.5, y + 1, cz + 0.5);
     }
 
+    /** Highest standable spot, searched in rings around x/z, or null. */
+    private Location findGround(World w, int cx, int cz) {
+        for (int r = 0; r <= searchRadius; r++) {
+            for (int dx = -r; dx <= r; dx++) {
+                for (int dz = -r; dz <= r; dz++) {
+                    if (Math.abs(dx) != r && Math.abs(dz) != r) continue;
+                    int x = cx + dx, z = cz + dz;
+                    w.loadChunk(x >> 4, z >> 4);
+                    int y = w.getHighestBlockYAt(x, z);
+                    if (standable(w, x, y, z)) return new Location(w, x + 0.5, y, z + 0.5);
+                }
+            }
+        }
+        return null;
+    }
+
     // ================================================================== portal travel
 
     private Location portalDestination(Location from) {
         World target = from.getWorld() == skyWorld ? mainWorld() : skyWorld;
         int x = from.getBlockX(), z = from.getBlockZ();
 
-        // search at least as far as safeSpot() may build, or portals get stacked
-        int radius = Math.max(portalSearchRadius, searchRadius + 4);
+        // search at least as far as a return portal may be built, or portals get stacked
+        int radius = Math.max(portalSearchRadius, searchRadius + BUILD_RADIUS + 4);
         Block existing = Portals.findNear(target, x, z, radius);
         if (existing != null) return Portals.exitOf(existing);
 
-        Location spot = safeSpot(target, x, z);
-        if (!createReturnPortal) return spot;
-        return Portals.build(target, spot.getBlockX(), spot.getBlockY(), spot.getBlockZ());
+        if (!createReturnPortal) return safeSpot(target, x, z);
+
+        // like vanilla: free spot near the arrival ground, else a floating portal
+        Location ground = findGround(target, x, z);
+        int bx = ground != null ? ground.getBlockX() : x;
+        int bz = ground != null ? ground.getBlockZ() : z;
+        Block built = ground != null ? Portals.buildNear(target, bx, bz, BUILD_RADIUS) : null;
+        if (built == null) built = Portals.buildFloating(target, bx, bz, from.getBlockY());
+        if (built == null) return safeSpot(target, x, z); // no room anywhere: arrive without portal
+        return Portals.exitOf(built);
     }
 
     // ================================================================== listeners
@@ -249,6 +268,9 @@ public class SkyDimension extends JavaPlugin {
             Location dest = safeSpot(mainWorld(), to.getBlockX(), to.getBlockZ());
             dest.setYaw(to.getYaw());
             dest.setPitch(to.getPitch());
+            // riding players can't be moved across worlds cleanly in b1.7.3: dismount first
+            net.minecraft.server.EntityPlayer h = ((CraftPlayer) event.getPlayer()).getHandle();
+            if (h.vehicle != null) h.setPassengerOf(null);
             event.getPlayer().setFallDistance(0);
             // setTo instead of teleport() inside the event, and land on ground:
             // a mid-air arrival made the client hover into the fly kick.
@@ -376,6 +398,8 @@ public class SkyDimension extends JavaPlugin {
                 continue;
             }
             Block portal = touchedGlowstonePortal(p);
+            // vanilla: no portal travel while riding a minecart or boat
+            if (portal != null && ((CraftPlayer) p).getHandle().vehicle != null) portal = null;
             PortalTimer t = portalTimers.get(name);
             if (portal == null) {
                 if (t != null) {
@@ -405,9 +429,22 @@ public class SkyDimension extends JavaPlugin {
     private class Entities extends EntityListener {
         public void onEntityPortalEnter(EntityPortalEnterEvent event) {
             if (!(event.getEntity() instanceof Player)) return;
-            if (!Portals.isGlowstonePortal(event.getLocation().getBlock())) return;
+            // In the Sky every portal is blocked: Poseidon's transfer has no destination there
+            // and kicks the player. Elsewhere only glowstone portals, exactly as before.
+            boolean inSky = event.getEntity().getWorld() == skyWorld;
+            if (!inSky && !Portals.isGlowstonePortal(event.getLocation().getBlock())) return;
             // block Poseidon's transfer already within this tick (crashes for plugin worlds)
             ((CraftPlayer) event.getEntity()).getHandle().D = 10;
+        }
+    }
+
+    private class Worlds extends WorldListener {
+        /**
+         * Obsidian portals don't light in the Sky (the fire stays fire). Our glowstone
+         * portals are placed directly and never fire this event.
+         */
+        public void onPortalCreate(PortalCreateEvent event) {
+            if (event.getWorld() == skyWorld) event.setCancelled(true);
         }
     }
 
