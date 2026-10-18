@@ -8,7 +8,7 @@ Requires no client-side mods.
 ---
 
 > [!WARNING]
-> This plugin was vibecoded but seems to work good and the code looks fine.
+> This plugin was vibecoded but seems to work good.
 
 ---
 
@@ -86,7 +86,7 @@ By default, normal players can only reach the Sky through portals or dreams.
 | `fall-to-overworld` | `true` | Falling out of the Sky lands you in the overworld |
 | `create-return-portal` | `true` | Build a portal at the destination if none exists |
 | `safe-spot-search-radius` | `48` | Radius in blocks to search for solid ground on arrival |
-| `portal-search-radius` | `16` | Minimum radius to search for an existing portal (always at least the ground search radius + 4) |
+| `portal-search-radius` | `16` | Minimum radius to search for an existing portal (always at least the ground search radius + 18) |
 | `dream-chance` | `10` | Chance in % to be pulled into the dream world when going to bed. `0` disables it |
 | `sky-snow` | `false` | Renew snow and freeze water in the Sky. Vanilla does not regenerate snow that has melted or been broken. No rain or snow is visible client-side |
 
@@ -94,7 +94,7 @@ By default, normal players can only reach the Sky through portals or dreams.
 
 - Time in the Sky is frozen at noon, so you cannot sleep there. This is vanilla behaviour.
 - Glowstone portals only connect the overworld and the Sky.
-- Vanilla obsidian Nether portals are not affected.
+- Vanilla obsidian Nether portals are not affected. In the Sky, obsidian portals cannot be lit.
 - Return portals are built at ground level like vanilla Nether portals, only in free space (air, leaves, grass, flowers, snow). The bottom of the frame may replace natural ground such as dirt, stone or sand, never player-made blocks. If there is no room, a floating portal on a small platform is built instead.
 - The return point of `/sky` is kept in memory only. After a restart, `/sky` from the Sky takes you to the overworld spawn.
 
