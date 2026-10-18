@@ -95,6 +95,7 @@ By default, normal players can only reach the Sky through portals or dreams.
 - Time in the Sky is frozen at noon, so you cannot sleep there. This is vanilla behaviour.
 - Glowstone portals only connect the overworld and the Sky.
 - Vanilla obsidian Nether portals are not affected.
+- Return portals are built at ground level like vanilla Nether portals, only in free space (air, leaves, grass, flowers, snow). The bottom of the frame may replace natural ground such as dirt, stone or sand, never player-made blocks. If there is no room, a floating portal on a small platform is built instead.
 - The return point of `/sky` is kept in memory only. After a restart, `/sky` from the Sky takes you to the overworld spawn.
 
 ## Building from source
